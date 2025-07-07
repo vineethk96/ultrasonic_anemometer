@@ -21,7 +21,7 @@
 #define rxSwitchEnable_pin 8
 
 // Reads from the ADC on the return path
-#define signal1_pin 3
+#define signal1_pin 36
 #define signal2_pin 4
 #define signal3_pin 6
 
@@ -51,7 +51,7 @@ States_t currentState = WAITING;
 
 void setup() {
 
-  Serial.begin(9600);
+  Serial.begin(115200);
 
   /* Setup Pins */
   pinMode(enablePLL1_pin, OUTPUT);
@@ -65,7 +65,7 @@ void setup() {
   // pinMode(rxSwitchC_pin, OUTPUT);
   // pinMode(txSwitchEnable_pin, OUTPUT);
   // pinMode(rxSwitchEnable_pin, OUTPUT);
-  // pinMode(signal1_pin, INPUT);
+  pinMode(signal1_pin, INPUT);
   // pinMode(signal2_pin, INPUT);
   // pinMode(signal3_pin, INPUT);
 
@@ -93,10 +93,30 @@ void loop() {
 
   // Serial.println(".");
 
-  digitalWrite(enablePLL1_pin, enablePLL);
-  delay(1000);
-  digitalWrite(enablePLL1_pin, disablePLL);
-  delay(1000);
+  if(!signalFlag){
+    digitalWrite(enablePLL1_pin, enablePLL);
+    signalFlag = true;
+  }
+  
+  if(micros() - readTime > 10){
+    Serial.println(analogRead(signal1_pin));
+    readTime = micros();
+  }
+  
+  //Serial.println("PLL Enabled");
+  // signalStartTime = micros();
+  // while(micros() - signalStartTime < stallTime){
+  //   // Wait for the PLL to send out a clock signal
+  //   Serial.println(analogRead(signal1_pin));
+  // }
+
+  // digitalWrite(enablePLL1_pin, disablePLL);
+  // Serial.println("PLL Disabled");
+  // signalStartTime = micros();
+  // while(micros() - signalStartTime < stallTime){
+  //   // Wait for the PLL to send out a clock signal
+  //   Serial.println(analogRead(signal1_pin));
+  // }
 
   // switch(currentState){
   //   case WAITING:{
