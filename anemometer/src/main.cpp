@@ -51,7 +51,7 @@ States_t currentState = WAITING;
 
 void setup() {
 
-  Serial.begin(115200);
+  Serial.begin(460800);
 
   /* Setup Pins */
   pinMode(enablePLL1_pin, OUTPUT);
@@ -83,70 +83,17 @@ void setup() {
 
 void loop() {
 
-  static bool signalFlag = false;
-  static unsigned long signalStartTime = 0;
-  static unsigned long readTime = 0;
-  static double maxArray[waveCount] = {0, 0, 0, 0, 0};
-  static uint8_t waveIndex = 0;
+  static unsigned long lastReading = micros();
+  //Serial.println(".");
 
-  unsigned long loopStartTime = micros();
-
-  // Serial.println(".");
-
-  if(!signalFlag){
-    digitalWrite(enablePLL1_pin, enablePLL);
-    signalFlag = true;
-  }
+  analogReadResolution(12);
+  analogSetAttenuation(ADC_11db); // Set the attenuation to 11dB for better range
+  analogSetWidth(12); // Set the ADC width to 12 bits
   
-  if(micros() - readTime > 10){
+
+  unsigned long diff = micros() - lastReading;
+  if(diff >= 5){  // Take a reading every 2.5us, therefore, 10 readings per wave, assuming a wave is 25us
     Serial.println(analogRead(signal1_pin));
-    readTime = micros();
+    lastReading = micros();
   }
-  
-  //Serial.println("PLL Enabled");
-  // signalStartTime = micros();
-  // while(micros() - signalStartTime < stallTime){
-  //   // Wait for the PLL to send out a clock signal
-  //   Serial.println(analogRead(signal1_pin));
-  // }
-
-  // digitalWrite(enablePLL1_pin, disablePLL);
-  // Serial.println("PLL Disabled");
-  // signalStartTime = micros();
-  // while(micros() - signalStartTime < stallTime){
-  //   // Wait for the PLL to send out a clock signal
-  //   Serial.println(analogRead(signal1_pin));
-  // }
-
-  // switch(currentState){
-  //   case WAITING:{
-
-  //     // If the time elapsed has surpassed `stallTime`
-  //     if(loopStartTime - micros() > stallTime){
-  //       currentState = SENDING;
-  //     }
-
-  //     break;
-  //   }
-  //   case SENDING:{
-  //     // Enable the PLLs
-  //     //signalFlag = true;
-  //     digitalWrite(enablePLL1_pin, enablePLL);
-  //     signalStartTime = micros();
-
-  //     currentState = POLLING;
-  //     break;
-  //   }
-  //   case POLLING:{
-
-  //     // read every microsecond
-  //     if(readTime - micros() > 1){
-  //       Serial.println(analogRead(signal1_pin));
-  //     }
-
-
-  //     break;
-  //   }
-  // }
-
 }
