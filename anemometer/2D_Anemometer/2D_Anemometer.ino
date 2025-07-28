@@ -3,16 +3,16 @@
 #include <math.h>
 #include <Arduino.h>
   
-const int Wcalm = 529;      //West sensor reading in still air
-const int Ecalm = 535;      //East sensor reading in still air
-const int Wnorth = 530;     //West sensor reading in north wind
-const int Enorth = 537;     //East sensor reading in north wind
-const int Weast =525;       //West sensor reading in east wind
-const int Eeast = 540;      //East sensor reading in east wind
-const float windspeed = 15.3;   //Wind speed during calibration
+const int Wcalm = 540;      //West sensor reading in still air
+const int Ecalm = 540;      //East sensor reading in still air
+const int Wnorth = 540;     //West sensor reading in north wind
+const int Enorth = 540;     //East sensor reading in north wind
+const int Weast =530;       //West sensor reading in east wind
+const int Eeast = 500;      //East sensor reading in east wind
+const float windspeed = 5;   //Wind speed during calibration
 
-const int west = 36;        //West sensor analog pin
-const int east = 39;        //East sensor analog pin
+const int west = A0;        //West sensor analog pin
+const int east = A1;        //East sensor analog pin
  
 void setup()
 {
