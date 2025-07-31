@@ -5,7 +5,7 @@
 
 #include "sevSeg.hpp"
 
-#define ADC_DELAY_US 1//12
+#define ADC_DELAY_US 100
 #define MOVING_AVERAGE_SIZE 50
 #define DISPLAY_UPDATE_RATE 1000
 
@@ -24,21 +24,11 @@ typedef struct{
 
 // Calibration values for the sensors in still air
                       // W  , E
-// const Wind_t calm = {575, 548}; // Calibration values for still air
-// const Wind_t north = {847, 215}; // Calibration values for north wind
-// const Wind_t east = {576, 356}; // Calibration values for east wind
+const Wind_t calm =   {547, 581}; // Calibration values for still air
+const Wind_t north =  {850, 226}; // Calibration values for north wind
+const Wind_t east =   {720, 712}; // Calibration values for east wind
 
-const Wind_t calm = {570, 555}; // Calibration values for still air
-const Wind_t north = {851, 195}; // Calibration values for north wind
-const Wind_t east = {734, 701}; // Calibration values for east wind
-
-// const int Wcalm = 575;      //West sensor reading in still air
-// const int Ecalm = 548;      //East sensor reading in still air
-// const int Wnorth = 847;     //West sensor reading in north wind
-// const int Enorth = 215;     //East sensor reading in north wind
-// const int Weast =576;       //West sensor reading in east wind
-// const int Eeast = 356;      //East sensor reading in east wind
-const float windspeed = 9;   //Wind speed during calibration
+const float windspeed = 10;   //Wind speed during calibration
 
 // Define the pins for the 7-segment display
 sevSeg myDisplay;
@@ -67,8 +57,9 @@ void setup()
 }
 void loop()
 {
+  static unsigned long lastReading = millis();
   static unsigned long lastUpdate = millis();
-  static int reading = 0; // Structure to hold the voltages from the sensors
+  static int reading = 0; // int to hold the voltages from the sensors
   static bool sensorSelect = false; // Switch to alternate between east and west sensor readings
   // false = east sensor, true = west sensor
 
@@ -76,9 +67,12 @@ void loop()
 
   // Check which sensor to read based on the switch
   // This is because analog read takes 112us, so this reduces the time between readings
-  reading = (sensorSelect) ? analogRead(WEST_PIN) : analogRead(EAST_PIN); // Measure sensor voltage
-  windData = windCalculations(reading, sensorSelect); // Perform wind calculations
-  sensorSelect = !sensorSelect; // Switch to the other sensor for the next reading
+  if(millis() - lastReading >= ADC_DELAY_US){
+    lastReading = millis(); // Update the last reading time
+    reading = (sensorSelect) ? analogRead(WEST_PIN) : analogRead(EAST_PIN); // Measure sensor voltage
+    windData = windCalculations(reading, sensorSelect); // Perform wind calculations
+    sensorSelect = !sensorSelect; // Switch to the other sensor for the next reading
+  } 
 
   // Update the value at the Display
   if(millis() - lastUpdate >= DISPLAY_UPDATE_RATE){
@@ -105,27 +99,23 @@ WindData_t windCalculations(int reading, bool sensorSelect)
   // Rolling Average Calculation
   if(sensorSelect){
     // West Sensor Update
-    westSum += reading; // Add current west sensor reading to sum
-    westSum -= westAvgArray[westAvgIndex]; // Subtract the oldest west sensor reading from sum
-    westAvgArray[westAvgIndex] = reading; // Store the current west sensor reading
-    westAvgIndex = (westAvgIndex + 1) % MOVING_AVERAGE_SIZE; // Update index for west sensor
-
-    // Serial.print("West Sensor Reading: ");
-    // Serial.println(reading);
+    westSum += reading;                                       // Add current west sensor reading to sum
+    westSum -= westAvgArray[westAvgIndex];                    // Subtract the oldest west sensor reading from sum
+    westAvgArray[westAvgIndex] = reading;                     // Store the current west sensor reading
+    westAvgIndex = (westAvgIndex + 1) % MOVING_AVERAGE_SIZE;  // Update index for west sensor
   }
   else{
     // East Sensor Update
-    eastSum += reading; // Add current east sensor reading to sum
-    eastSum -= eastAvgArray[eastAvgIndex]; // Subtract the oldest east sensor reading from sum
-    eastAvgArray[eastAvgIndex] = reading; // Store the current east sensor reading
-    eastAvgIndex = (eastAvgIndex + 1) % MOVING_AVERAGE_SIZE; // Update index for east sensor
+    eastSum += reading;                                       // Add current east sensor reading to sum
+    eastSum -= eastAvgArray[eastAvgIndex];                    // Subtract the oldest east sensor reading from sum
+    eastAvgArray[eastAvgIndex] = reading;                     // Store the current east sensor reading
+    eastAvgIndex = (eastAvgIndex + 1) % MOVING_AVERAGE_SIZE;  // Update index for east sensor
   }
 
   // Serial.print("West sensor average: ");
   // Serial.println(westSum / MOVING_AVERAGE_SIZE);
   // Serial.print("East sensor average: ");
   // Serial.println(eastSum / MOVING_AVERAGE_SIZE);
-
 
   // Calculate West and East Transducer vectors
   float NW_WS_W = windspeed * (((westSum/MOVING_AVERAGE_SIZE) - calm.W) / (north.W - calm.W)); // North wind vector at West Transducer
@@ -136,30 +126,20 @@ WindData_t windCalculations(int reading, bool sensorSelect)
   float northWind = NW_WS_W + NW_WS_E; // Calculate the north wind vector
   float eastWind = EW_WS_W + EW_WS_E; // Calculate the east wind vector
 
-  float westVector = sqrt((NW_WS_W * NW_WS_W) + (EW_WS_W * EW_WS_W)); // Calculate the west vector
-  float eastVector = sqrt((NW_WS_E * NW_WS_E) + (EW_WS_E * EW_WS_E)); // Calculate the east vector
+  windData.windSpeed = round(sqrt((northWind * northWind) + (eastWind * eastWind)) / 2); // Calculate the wind speed
 
-  // Serial.print("North wind ");
-  // Serial.print(northwind);
-  // Serial.println(" m/s");
-  // Serial.print("East wind ");
-  // Serial.print(eastwind);
-  // Serial.println(" m/s");
+  windData.windDirection = (180 * (atan2(northWind, eastWind))) / PI; //270 - round(atan2(northWind, eastWind) * 57.3);//*(northwind<0);
   
-  windData.windSpeed = (round(westVector + eastVector))/2; //Calculate wind speed
-
-  windData.windDirection = 270-round(atan2(northWind, eastWind)*57.3);//*(northwind<0);
-  
-  if (windData.windDirection>359){
-    windData.windDirection=windData.windDirection-360; //Calculate wind direction
+  if (windData.windDirection > 359){
+    windData.windDirection = windData.windDirection - 360; //Calculate wind direction
   }
   
   // Serial.print("Wind speed ");
   // Serial.print(windData.windSpeed);
   // Serial.println(" m/s");
-  // Serial.print("Wind direction " );
-  // Serial.print(heading);
-  // Serial.println(" degrees");
+  Serial.print("Wind direction " );
+  Serial.print(windData.windDirection);
+  Serial.println(" degrees");
 
   return windData; // Return the wind data structure
 }
