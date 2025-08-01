@@ -72,6 +72,8 @@ void loop()
     reading = (sensorSelect) ? analogRead(WEST_PIN) : analogRead(EAST_PIN); // Measure sensor voltage
     windData = windCalculations(reading, sensorSelect); // Perform wind calculations
     sensorSelect = !sensorSelect; // Switch to the other sensor for the next reading
+    
+    Serial.println("{" + String(windData.windSpeed) + ", " + String(windData.windDirection) + "}"); // Print the wind data
   } 
 
   // Update the value at the Display
@@ -128,18 +130,16 @@ WindData_t windCalculations(int reading, bool sensorSelect)
 
   windData.windSpeed = round(sqrt((northWind * northWind) + (eastWind * eastWind)) / 2); // Calculate the wind speed
 
-  windData.windDirection = (180 * (atan2(northWind, eastWind))) / PI; //270 - round(atan2(northWind, eastWind) * 57.3);//*(northwind<0);
-  
-  if (windData.windDirection > 359){
-    windData.windDirection = windData.windDirection - 360; //Calculate wind direction
-  }
-  
+  windData.windDirection = round((180/PI) * (atan2(northWind, eastWind)));
+  if(windData.windDirection < 0)
+    windData.windDirection += 360; // Normalize the wind direction to be between 0 and 360 degrees
+
   // Serial.print("Wind speed ");
   // Serial.print(windData.windSpeed);
   // Serial.println(" m/s");
-  Serial.print("Wind direction " );
-  Serial.print(windData.windDirection);
-  Serial.println(" degrees");
+  // Serial.print("Wind direction " );
+  // Serial.print(windData.windDirection);
+  // Serial.println(" degrees");
 
   return windData; // Return the wind data structure
 }
