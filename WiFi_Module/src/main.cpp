@@ -17,6 +17,8 @@ const char *mqtt_server = "mqtt.cetools.org";
 const char *mqtt_topic = "student/ultrasonic_anemometer/data";
 const int mqtt_port = 1884;
 
+
+
 // Global Objects
 WiFiClient wifiClient;
 PubSubClient mqttClient(wifiClient);
@@ -44,20 +46,19 @@ void setup() {
 }
 
 void loop() {
+  char mqtt_msg[100];
+  
+  if(Serial.available()) {
+    
+    String input = Serial.readStringUntil('\n');
+    // Prepare MQTT message
+    sprintf(mqtt_msg, input.c_str());
+    sendMQTT(mqtt_msg);
+  }
 
   // Ensure WiFi and MQTT connections are maintained
   checkWifi();
   checkMQTT();
-  
-  if(Serial.available()) {
-    char mqtt_msg[20];
-    String input = Serial.readStringUntil('\n');
-    Serial.print("Received: ");
-    Serial.println(input);
-    // Prepare MQTT message
-    sprintf(mqtt_msg, "{\"data\": \"%s\"}", input.c_str());
-    sendMQTT(mqtt_msg);
-  }
 }
 
 void startWifi(void)
@@ -111,13 +112,16 @@ void checkMQTT(void)
 
 void sendMQTT(char *msg)
 {
+  char mqttTopic[35];
+  sprintf(mqttTopic, "student/ultrasonic_anemometer");
+  
   Serial.println("SENDING MSG...");
   Serial.print("Topic: ");
-  Serial.println(mqtt_topic);
+  Serial.println(mqttTopic);
   Serial.print("Message: ");
   Serial.println(msg);
 
-  if (mqttClient.publish(mqtt_topic, msg))
+  if (mqttClient.publish(mqttTopic, msg))
   {
     Serial.println("Message published");
   }
@@ -125,4 +129,6 @@ void sendMQTT(char *msg)
   {
     Serial.println("Failed to publish message");
   }
+
+  delay(1000); // Wait for a second before next operation
 }

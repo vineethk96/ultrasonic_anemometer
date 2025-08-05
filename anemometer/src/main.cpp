@@ -13,7 +13,7 @@
 #define EAST_PIN A1
 
 typedef struct{
-  int windSpeed; // Wind speed in m/s
+  float windSpeed; // Wind speed in m/s
   int windDirection; // Wind direction in degrees
 } WindData_t;
 
@@ -72,13 +72,12 @@ void loop()
     reading = (sensorSelect) ? analogRead(WEST_PIN) : analogRead(EAST_PIN); // Measure sensor voltage
     windData = windCalculations(reading, sensorSelect); // Perform wind calculations
     sensorSelect = !sensorSelect; // Switch to the other sensor for the next reading
-    
-    Serial.println("{" + String(windData.windSpeed) + ", " + String(windData.windDirection) + "}"); // Print the wind data
   } 
 
   // Update the value at the Display
   if(millis() - lastUpdate >= DISPLAY_UPDATE_RATE){
-    myDisplay.setNumber(windData.windSpeed);
+    myDisplay.setNumber(round(windData.windSpeed));
+    Serial.println("{speed:" + String(windData.windSpeed) + ",direction:" + String(windData.windDirection) + "}"); // Print the wind data
     lastUpdate = millis(); // Update the last update time
   }
 
@@ -128,7 +127,7 @@ WindData_t windCalculations(int reading, bool sensorSelect)
   float northWind = NW_WS_W + NW_WS_E; // Calculate the north wind vector
   float eastWind = EW_WS_W + EW_WS_E; // Calculate the east wind vector
 
-  windData.windSpeed = round(sqrt((northWind * northWind) + (eastWind * eastWind)) / 2); // Calculate the wind speed
+  windData.windSpeed = sqrt((northWind * northWind) + (eastWind * eastWind)) / 2; // Calculate the wind speed
 
   windData.windDirection = round((180/PI) * (atan2(northWind, eastWind)));
   if(windData.windDirection < 0)
