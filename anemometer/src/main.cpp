@@ -72,6 +72,7 @@ void loop()
     reading = (sensorSelect) ? analogRead(WEST_PIN) : analogRead(EAST_PIN); // Measure sensor voltage
     windData = windCalculations(reading, sensorSelect); // Perform wind calculations
     sensorSelect = !sensorSelect; // Switch to the other sensor for the next reading
+    Serial.println("{" + String(windData.windSpeed) + ", " + String(windData.windDirection) + "}"); // Print the wind data
   } 
 
   // Update the value at the Display
