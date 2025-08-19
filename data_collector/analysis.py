@@ -176,33 +176,33 @@ anova_table_3way = sm.stats.anova_lm(model3, typ=2)
 print_anova_with_effect_sizes(anova_table_3way, "Three-Way ANOVA (All Heights)")
 
 ##############################################################################################
-# Two-way ANOVAs: Trees vs Buildings only
+# Two-way ANOVAs: Park vs Buildings only
 print("\n" + "="*50)
-print("TWO-WAY ANOVAS: TREES VS BUILDINGS ONLY")
+print("TWO-WAY ANOVAS: PARKS VS BUILDINGS ONLY")
 print("="*50)
 
-# Filter dataset: only tree and building obstacles
-tb_data = data[data["obstacles"].isin(["tree", "building"])]
+# Filter dataset: only park and building obstacles
+tb_data = data[data["obstacles"].isin(["park", "building"])]
 
 
 for h in tb_data["height"].unique():
     subset = tb_data[tb_data["height"] == h]
     
-    # Model: Wind speed explained by Obstacle (tree vs building), Width, and their interaction
+    # Model: Wind speed explained by Obstacle (park vs building), Width, and their interaction
     model_tb = ols("wind_speed ~ C(obstacles) * C(width)", data=subset).fit()
     anova_tb = sm.stats.anova_lm(model_tb, typ=2)
     
-    print_anova_with_effect_sizes(anova_tb, f"Trees vs Buildings ANOVA at {h}")
+    print_anova_with_effect_sizes(anova_tb, f"Parks vs Buildings ANOVA at {h}")
 
-# Three-way ANOVA for trees vs buildings only
-print("\n" + "="*50)
-print("THREE-WAY ANOVA: TREES VS BUILDINGS ONLY")
-print("="*50)
+# # Three-way ANOVA for parks vs buildings only
+# print("\n" + "="*50)
+# print("THREE-WAY ANOVA: PARKS VS BUILDINGS ONLY")
+# print("="*50)
 
-model_tb3 = ols("wind_speed ~ C(height) * C(width) * C(obstacles)", data=tb_data).fit()
-anova_tb3 = sm.stats.anova_lm(model_tb3, typ=2)
+# model_tb3 = ols("wind_speed ~ C(height) * C(width) * C(obstacles)", data=tb_data).fit()
+# anova_tb3 = sm.stats.anova_lm(model_tb3, typ=2)
 
-print_anova_with_effect_sizes(anova_tb3, "Three-Way ANOVA (Trees vs Buildings)")
+# print_anova_with_effect_sizes(anova_tb3, "Three-Way ANOVA (Parks vs Buildings)")
 
 
 # Additional summary statistics
