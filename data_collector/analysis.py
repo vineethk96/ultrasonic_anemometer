@@ -4,6 +4,7 @@ import statsmodels.api as sm
 from statsmodels.formula.api import ols
 from itertools import product
 import numpy as np
+from scipy import stats
 
 def calculate_omega_squared(anova_table):
     """
@@ -16,7 +17,7 @@ def calculate_omega_squared(anova_table):
     """
     # print("ANOVA table columns:", anova_table.columns.tolist())
     # print("ANOVA table index:", anova_table.index.tolist())
-    print("ANOVA table:\n", anova_table)
+    # print("ANOVA table:\n", anova_table)
     
     # Check for correct column names in statsmodels ANOVA output
     # Common column names: 'sum_sq', 'df', 'F', 'PR(>F)'
@@ -176,33 +177,71 @@ anova_table_3way = sm.stats.anova_lm(model3, typ=2)
 print_anova_with_effect_sizes(anova_table_3way, "Three-Way ANOVA (All Heights)")
 
 ##############################################################################################
-# Two-way ANOVAs: Park vs Buildings only
-print("\n" + "="*50)
-print("TWO-WAY ANOVAS: PARKS VS BUILDINGS ONLY")
-print("="*50)
+# SPECIFIC OBSTACLE EFFECTS ANALYSIS
+print("\n" + "="*60)
+print("SPECIFIC OBSTACLE EFFECTS ON WIND SPEED")
+print("="*60)
 
-# Filter dataset: only park and building obstacles
-tb_data = data[data["obstacles"].isin(["park", "building"])]
+# Method 1: Contrasts (specific comparisons you care about)
+print("\n1. SPECIFIC CONTRASTS:")
+print("-" * 25)
 
+# Manual contrast calculations
+none_mean = data[data['obstacles'] == 'none']['wind_speed'].mean()
+building_mean = data[data['obstacles'] == 'building']['wind_speed'].mean() 
+park_mean = data[data['obstacles'] == 'park']['wind_speed'].mean()
 
-for h in tb_data["height"].unique():
-    subset = tb_data[tb_data["height"] == h]
+print(f"None (baseline):     {none_mean:.3f}")
+print(f"Building:            {building_mean:.3f}")
+print(f"Park:                {park_mean:.3f}")
+print()
+print("Effects relative to 'none':")
+print(f"Building effect:     {building_mean - none_mean:+.3f}")
+print(f"Park effect:         {park_mean - none_mean:+.3f}")
+print()
+print("Direct comparison:")
+print(f"Building vs Park:    {building_mean - park_mean:+.3f}")
+
+# Method 2: Confidence intervals for each effect
+print("\n2. CONFIDENCE INTERVALS FOR EFFECTS:")
+print("-" * 40)
+
+alpha = 0.05  # for 95% CI
+for obstacle in ['building', 'park']:
+    if obstacle in data['obstacles'].values:
+        group_data = data[data['obstacles'] == obstacle]['wind_speed']
+        baseline_data = data[data['obstacles'] == 'none']['wind_speed']
+        
+        # Calculate difference and pooled standard error
+        diff = group_data.mean() - baseline_data.mean()
+        pooled_se = np.sqrt(group_data.var()/len(group_data) + baseline_data.var()/len(baseline_data))
+        
+        # t-critical value (approximate, using larger df)
+        df_approx = min(len(group_data)-1, len(baseline_data)-1)
+        t_crit = stats.t.ppf(1-alpha/2, df_approx)
+        
+        ci_lower = diff - t_crit * pooled_se
+        ci_upper = diff + t_crit * pooled_se
+        
+        print(f"{obstacle.capitalize()} vs None: {diff:.3f} [95% CI: {ci_lower:.3f}, {ci_upper:.3f}]")
+
+# Method 3: Effect by height level (interaction effects)
+print("\n3. OBSTACLE EFFECTS BY HEIGHT LEVEL:")
+print("-" * 40)
+for height in sorted(data['height'].unique()):
+    print(f"\n{height}:")
+    height_data = data[data['height'] == height]
+    height_means = height_data.groupby('obstacles')['wind_speed'].mean()
     
-    # Model: Wind speed explained by Obstacle (park vs building), Width, and their interaction
-    model_tb = ols("wind_speed ~ C(obstacles) * C(width)", data=subset).fit()
-    anova_tb = sm.stats.anova_lm(model_tb, typ=2)
-    
-    print_anova_with_effect_sizes(anova_tb, f"Parks vs Buildings ANOVA at {h}")
+    if 'none' in height_means.index:
+        baseline = height_means['none']
+        print(f"  Baseline (none): {baseline:.3f}")
+        for obs in ['building', 'park']:
+            if obs in height_means.index:
+                effect = height_means[obs] - baseline
+                print(f"  {obs.capitalize()} effect: {effect:+.3f}")
 
-# # Three-way ANOVA for parks vs buildings only
-# print("\n" + "="*50)
-# print("THREE-WAY ANOVA: PARKS VS BUILDINGS ONLY")
-# print("="*50)
-
-# model_tb3 = ols("wind_speed ~ C(height) * C(width) * C(obstacles)", data=tb_data).fit()
-# anova_tb3 = sm.stats.anova_lm(model_tb3, typ=2)
-
-# print_anova_with_effect_sizes(anova_tb3, "Three-Way ANOVA (Parks vs Buildings)")
+##############################################################################################
 
 
 # Additional summary statistics
